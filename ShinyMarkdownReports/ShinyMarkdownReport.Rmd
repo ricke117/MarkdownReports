@@ -1,0 +1,263 @@
+---
+title: "Shiny/Markdown Report Generator, Draft"
+output: 
+  html_notebook: 
+    toc: true
+    toc_float: true
+date: "2024-01-29"
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include = FALSE}
+# I include the following code at the outset of each document.
+# This chunk has include=FALSE so it won't appear in the knitted (final) version of this document.
+
+# Clear the environment.
+rm(list = ls())
+
+# Ensure you'll get the same random numbers during each run of this document. Hash-out if not desired.
+set.seed(0)
+
+# I use the p_load function in the pacman package to check if packages are already installed. If not, it installs and loads them.
+# The following checks if pacman itself is already installed. If not, it installs it.
+if (!require("pacman")) install.packages("pacman")
+
+# Here, I use p_load on packages that may be needed to install other packages.
+pacman::p_load(devtools, BiocManager)
+
+# Here, I p_load packages that I'll want in any given R document.
+pacman::p_load(tidyverse, openxlsx, readxl)
+
+# In the next chunk, I p_load packages specific to the given document. I include this in the final document because it may be helpful for readers of the final document.
+```
+
+# Introduction
+
+This document demonstrates the functionality of R Markdown in combination with R Shiny.
+
+Specifically, I demonstrate how Shiny apps, embedded in a Markdown document, can be used to explore and wrangle different datasets.
+
+The apps in this document are compatible with any of the example datasets that come with [the EPA's ProUCL Software (v. 5.2)](/https://cfpub.epa.gov/si/si_public_record_Report.cfm?dirEntryId=354971&Lab=CESER).
+
+# Preparatory Code
+
+In the source code for this document, I've already loaded R several packages that I use in the majority of my scripts (ex: the tidyverse of packages).
+
+Here, I load additional packages that are specific to this document. I use the `p_load()` function from the pacman package. This function loads the given packages and also installs them if they aren't already installed.
+
+```{r}
+pacman::p_load(EnvStats, shiny, shinyWidgets, shinydashboard,
+               rvg, #mschart, flextable, officedown,
+               officer,
+               rmarkdown, knitr, tinytex)
+```
+
+# Embedding Markdown within Markdown (using Shiny)
+
+Up until now, we've had to re-upload the data file within each shiny app. This is true because each app has its own server, and you can't pass objects between servers in a pre-rendered Markdown document.
+
+As an alterantive, you can upload a file in a Shiny app and pass it as an input (technically, a "parameter") to another Markdown document, which you can then render within Shiny in the first (parent) document.
+
+Within the second (child) document, the uploaded file can be passed between chunks like an object existing in the global environment of a standard Markdown document.
+
+The advantage of this approach is it can reduce the need to operate within Shiny after the data wrangling step has been performed: you upload and wrangle the data interactively in Shiny, then pass it to a Markdown document (ex. to make a standardized report).
+
+The following chunk uses a file called "report.Rmd" in the folder "EmbeddedRmdFiles".
+
+```{r, echo = FALSE, out.height= 20}
+shinyApp(
+  
+  ui <- fluidPage(
+    titlePanel("Data Upload and Wrangling"),
+    fileInput("file", "Choose csv, xls, or xlsx file", accept = c(".csv", ".xls", ".xlsx")),
+    tableOutput("df_raw_preview"),
+    verbatimTextOutput("summary"),
+    selectInput("columns", "Remove Columns", choices = NULL, multiple = TRUE),
+    selectInput("D_format", "Is there an ND column for each analyte?", choices = NULL,
+                multiple = TRUE),
+    selectInput("nonanalytes", "Select Non-Analytes", choices = NULL, multiple = TRUE),
+    actionButton("filterbutton", "Filter and Lengthen"),
+    tableOutput("dflong_preview"),
+    verbatimTextOutput("dflong_summary"),
+    actionButton("make_report", "Generate Report"),
+    radioButtons("format", "Document format", c("PDF", "HTML", "Word"), inline = TRUE),
+    downloadLink("downloadReport", "Download Report"),
+    uiOutput("report")
+    ),
+
+  server <- function(input, output, session) {
+    
+    # File upload.
+    Dat <- reactiveVal()
+
+    observeEvent(input[["file"]], {
+      data_file <- input[["file"]][["datapath"]]
+      ext <- tolower(tools::file_ext(data_file))
+      if(ext %in% c("xls", "xlsx")) {
+        sheets <- excel_sheets(data_file)
+        if(length(sheets) == 1L) {
+          Dat(readxl::read_excel(data_file,sheet = 1L))
+          } else {
+            inputSweetAlert(
+              session,
+              inputId = "sheet",
+              title = "Select the sheet",
+              type = "question",
+              input = "select",
+              inputOptions = sheets
+            )
+            observeEvent(input[["sheet"]], {
+              Dat(read_excel(input[["file"]][["datapath"]], sheet = input[["sheet"]]))
+              })
+          }
+        } else {
+          if(ext == "csv"){
+            Dat(read.csv(data_file))
+            } else {
+              sendSweetAlert(
+                session,
+                title = "Wrong file",
+                text = "Please upload a `xlsx` file.",
+                type = "error"
+              )
+            }
+          }
+      })
+    
+    # Generate preview of the raw data.
+    output$df_raw_preview <- renderTable({
+      req(Dat())
+      head(Dat())
+      })
+    
+    # Summarize raw data columns.
+    output$summary <- renderPrint({
+      req(Dat())
+      summary(Dat())
+      })
+  
+    # Select columns to remove entirely from the rest of the analysis.
+    # Also, does the data include a "D_" column for each analyte?
+    observeEvent(Dat(), {
+      updateSelectInput(session, "columns", choices = make.names(names(Dat())))
+      updateSelectInput(session, "D_format", choices = c("Yes", "No"))
+    })
+    
+    # Remove unwanted columns.
+      df_filtered <- reactive({
+        req(Dat())
+        df_filtered <- Dat() %>%
+          rename_all(make.names) %>%
+          select(-input$columns)
+      })
+    
+    # Select columns that are not analytes. This includes all grouping variables,
+    # metadata, etc. The options will automatically exclude any columns that begin with "D_",
+    # if they're selected as being present.
+    observeEvent(input$D_format, {
+      req(df_filtered())
+      if(input$D_format == "Yes"){
+        choices_analytes <- make.names(colnames(
+          df_filtered()))[!(grepl("^D_", make.names(colnames(df_filtered()))))]
+          } else {
+            choices_analytes <- make.names(colnames(df_filtered()))
+            }
+        updateSelectInput(session, "nonanalytes", choices = choices_analytes)
+    })
+    
+    df_long <- eventReactive(input$filterbutton, {
+      
+      # Lengthen just the concentration component of the filtered data.
+      
+      df_long <- df_filtered()
+      
+      df_long <- df_long %>%
+        mutate_at(colnames(df_long)[!(colnames(df_long) %in% input$nonanalytes) |
+                                          grepl("^D_", colnames(df_long))], as.numeric)
+      
+      if(input$D_format == "Yes"){
+        
+        df_long_NDs <- select(df_long, colnames(df_long)[grepl("^D_", colnames(df_long))] |
+                                colnames(df_long)[colnames(df_long) %in% input$nonanalytes])
+        
+        df_long_NDs <- df_long_NDs %>%
+          pivot_longer(cols = starts_with("D_"), names_to = "Analyte", values_to = "ND")
+        
+        df_long_NDs$Analyte <- gsub("D_", "", df_long_NDs$Analyte)
+        
+        df_long <- df_long %>%
+          select(!(starts_with("D_"))) %>%
+          pivot_longer(!c(input$nonanalytes),
+                       names_to = "Analyte",
+                       values_to = "Concentration")
+       
+       df_long <- cbind(df_long, ND = df_long_NDs$ND)
+       
+       df_long %>%
+         mutate(Concentration = ifelse(Concentration == 1e31, NA, Concentration),
+                ND = ifelse(is.na(Concentration), 1, 0))
+        
+      } else {
+        df_long %>%
+          pivot_longer(!c(input$nonanalytes),
+                       names_to = "Analyte",
+                       values_to = "Concentration") %>%
+          mutate(Concentration = ifelse(Concentration == 1e31, NA, Concentration),
+                 ND = ifelse(is.na(Concentration), 1, 0))
+        }
+      })
+      
+    output$dflong_preview <- renderTable({
+      req(df_long())
+      head(df_long())
+      })
+
+    output$dflong_summary <- renderPrint({
+      req(df_long())
+      summary(df_long())
+      })
+    
+    observeEvent(input$make_report, {
+      req(df_long())
+      
+        # Set up parameters to pass to Rmd document
+        params <- list(data = df_long())
+        
+        output$report <- renderUI({
+          HTML(markdown::markdownToHTML(knit("ReportTemplates/report.rmd", quiet = TRUE)))
+          })
+        })
+    
+    output$downloadReport <- downloadHandler(
+    
+    filename = function() {
+      paste("Report", sep = ".", switch(
+        input$format, PDF = "pdf", HTML = "html", Word = "docx"
+      ))
+    },
+    
+    content = function(file) {
+      
+      src <- normalizePath("report.Rmd")
+      
+      owd <- setwd(tempdir())
+      on.exit(setwd(owd))
+      
+      file.copy(src, "report.Rmd", overwrite = TRUE)
+      
+      out <- rmarkdown::render("report.Rmd",
+                               output_format = switch(
+        input$format,
+        PDF = rmarkdown::pdf_document(),
+        HTML = rmarkdown::html_document(),
+        Word = rmarkdown::word_document()),
+        params = list(data = df_long())
+      )
+      file.rename(out, file)
+    })
+    })
+```

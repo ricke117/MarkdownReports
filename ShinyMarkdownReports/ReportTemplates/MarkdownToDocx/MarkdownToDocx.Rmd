@@ -121,10 +121,11 @@ Example code:
     print("hello world")
 
 
-|   Another way of inserting special text
-|       Including indentation
-|           It takes a lot of indents
-|               To replicate a single "tab" key in MS Word.
+Another way of inserting indented text:
+|   Indented text.
+|       More indented text.
+|           It takes a lot of indents...
+|               ...to replicate a single "tab" key in MS Word.
 
 If you want to use a different style for a given piece of text, you can enter it as a custom style with either of the following syntax. 
 
