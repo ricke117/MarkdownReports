@@ -228,7 +228,7 @@ shinyApp(
         params <- list(data = df_long())
         
         output$report <- renderUI({
-          HTML(markdown::markdownToHTML(knit("ReportTemplates/report.rmd", quiet = TRUE)))
+          HTML(markdown::markdownToHTML(knit("Reports/report.rmd", quiet = TRUE)))
           })
         })
     

@@ -5,12 +5,12 @@ date: "`r Sys.Date()`"
 output:
   officedown::rdocx_document:
     base_format: "bookdown::word_document2"
-    reference_docx: Templates/WordTemplate1.docx
+    reference_docx: WordTemplate1.docx
     reference_num: FALSE
     number_sections: FALSE
-bibliography: "`r here::here('References', 'References.bib')`"
+bibliography: "`r here::here('ShinyMarkdownReports', 'References', 'References.bib')`"
 link-citations: yes
-csl: "`r here::here('References', 'chicago-author-date.csl')`"
+csl: "`r here::here('ShinyMarkdownReports', 'References', 'chicago-author-date.csl')`"
 ---
 
 ```{r setup, include = FALSE}
