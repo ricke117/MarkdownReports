@@ -4,7 +4,7 @@ For a thorough introduction to R Markdown, check the [R Markdown Cookbook (CRC P
 
 This repository is a first step toward the generation of parameterized reports, as conceived in the image, below. Importantly, the parameters of reports, including the data included in them, can be generated in other R scripts, including Shiny apps, then passed as options to the YAML header when knitting Rmd files (via knitr). These parameters are not restricted to YAML options; they can then be passed to functions within the body of the report. Using functions similar to block_pour_docx() in officedown, a preview of the knitted report could potentially be rendered within a Shiny app and re-knit with new parameters.
 
-![MarkdownShinyReportsDiagram](https://github.com/ricke117/MarkdownReports/assets/143446674/f3a01803-b490-4e9d-8406-fc77dd293658)
+![MarkdownShinyReportsDiagram](https://github.com/ricke117/MarkdownReports/assets/143446674/72fd7cdf-e8dd-4fd8-aa71-0f3b7e85f68c)
 
 It's also possible to generate reports with sequential calls to functions in knitr and other packages (for Word files, the officer package). Unlike the files in this repository, which were written in the source pane of the RStudio editor, knitting functions do not need to be called within the R Markdown document that will be knitted. It's possible that Markdown (Rmd) files can be avoided entirely. In this context, the parameters of reports would not have to be passed as options to a Markdown YAML header.
 
