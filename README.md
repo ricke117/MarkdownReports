@@ -1,5 +1,7 @@
 This repository will demonstrate how .docx, .pdf, and .html reports can be written using a combination of R Shiny and R Markdown. Priority is given to .docx files. For those, I've relied on officedown and other packages in the [officeverse](https://ardata-fr.github.io/officeverse/).
 
+**Currently, only the files in ShinyMarkdownReports/ReportTemplates/MarkdownToDocx are functional.** 
+
 For a thorough introduction to R Markdown, check the [R Markdown Cookbook (CRC Press)](https://bookdown.org/yihui/rmarkdown-cookbook/).
 
 This repository is a first step toward the generation of parameterized reports, as conceived in the image, below. Importantly, the parameters of reports, including the data included in them, can be generated in other R scripts, including Shiny apps, then passed as options to the YAML header when knitting Rmd files (via knitr). These parameters are not restricted to YAML options; they can then be passed to functions within the body of the report. Using functions similar to block_pour_docx() in officedown, a preview of the knitted report could potentially be rendered within a Shiny app and re-knit with new parameters.
