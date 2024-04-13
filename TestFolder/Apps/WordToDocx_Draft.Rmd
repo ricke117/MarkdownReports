@@ -6,6 +6,7 @@ output:
   officedown::rdocx_document:
     base_format: "bookdown::word_document2"
     reference_docx: WordTemplate1.docx
+    # "`r here::here('ShinyMarkdownReports', 'ReportTemplates', 'MarkdownToDocx', 'WordTemplate1.docx')`"
     reference_num: FALSE
     number_sections: FALSE
 bibliography: "`r here::here('ShinyMarkdownReports', 'References', 'References.bib')`"
@@ -27,7 +28,7 @@ knitr::opts_chunk$set(include = FALSE, echo = FALSE,
 ## The following only loads packages that are required for this template.
 if (!require("pacman")) install.packages("pacman") # p_load from the pacman package checks if packages are installed, installs them if not, then loads them.
 pacman::p_load(devtools, BiocManager, # packages for loading/installing other packages
-               here, # for using non-absolute file paths in project scripts
+               here, # for using project-relative paths
                cowplot, gridGraphics, # for plotting
                flextable, # for tables
                knitr, bookdown, # for additional knitting options

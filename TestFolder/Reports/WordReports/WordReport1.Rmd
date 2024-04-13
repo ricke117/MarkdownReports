@@ -1,0 +1,53 @@
+---
+title: "Title"
+author: "John Smith (Jacobs)"
+date: "`r Sys.Date()`"
+output:
+  officedown::rdocx_document:
+    base_format: "bookdown::word_document2"
+    reference_docx: WordTemplate1.docx
+    # "`r here::here('ShinyMarkdownReports', 'ReportTemplates', 'MarkdownToDocx', 'WordTemplate1.docx')`"
+    reference_num: FALSE
+    number_sections: FALSE
+bibliography: "`r here::here('ShinyMarkdownReports', 'References', 'References.bib')`"
+link-citations: yes
+csl: "`r here::here('ShinyMarkdownReports', 'References', 'chicago-author-date.csl')`"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include = FALSE}
+# Clean the global environment.
+rm(list = ls())
+
+# Set knitr options.
+knitr::opts_chunk$set(echo = FALSE,
+                      fig.align = "center",
+                      fig.width = 6, fig.height = 4)
+
+# Load packages.
+## The following only loads packages that are required for this template.
+# p_load from the pacman package checks if packages are installed, installs them if not, then loads them.
+if (!require("pacman")) install.packages("pacman")
+
+pacman::p_load(devtools, BiocManager, # packages for loading/installing other packages
+               here, # using project-relative paths
+               openxlsx, readxl, # reading in data
+               lubridate, # date-times
+               EnvStats, # toxicological functions 
+               cowplot, gridGraphics, # for plotting
+               flextable, # for tables
+               knitr, bookdown, # for additional knitting options
+               officedown, officer, mschart, rvg, # for producing Office documents and charts
+               shiny, shinyWidgets, shinydashboard, # Shiny packages
+               rmarkdown, knitr, tinytex, # Markdown and related
+               tidyverse) # for general data manipulation and piping
+```
+
+A plot of `params$n` random points.
+
+```{r}
+plot(rnorm(params$n), rnorm(params$n))
+```
