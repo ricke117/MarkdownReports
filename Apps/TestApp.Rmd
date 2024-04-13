@@ -1,17 +1,9 @@
 ---
-title: "Title"
+title: "Test App"
 author: "John Smith (Jacobs)"
 date: "`r Sys.Date()`"
-output:
-  officedown::rdocx_document:
-    base_format: "bookdown::word_document2"
-    reference_docx: WordTemplate1.docx
-    # "`r here::here('ShinyMarkdownReports', 'ReportTemplates', 'MarkdownToDocx', 'WordTemplate1.docx')`"
-    reference_num: FALSE
-    number_sections: FALSE
-bibliography: "`r here::here('ShinyMarkdownReports', 'References', 'References.bib')`"
-link-citations: yes
-csl: "`r here::here('ShinyMarkdownReports', 'References', 'chicago-author-date.csl')`"
+output: html_document
+runtime: shiny
 ---
 
 ```{r setup, include=FALSE}
