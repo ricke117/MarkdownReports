@@ -10,6 +10,6 @@ This repository is a first step toward the generation of parameterized reports, 
 
 It's also possible to generate reports with sequential calls to functions in knitr and other packages (for Word files, the officer package). Unlike the files in this repository, which were written in the source pane of the RStudio editor, knitting functions do not need to be called within the R Markdown document that will be knitted. It's possible that Markdown (Rmd) files can be avoided entirely. In this context, the parameters of reports would not have to be passed as options to a Markdown YAML header.
 
-Where possible, Jacobs company styles are used. For Word files, these are represented in a .docx template file in the "Templates" folder. The template file was developed in the process described here.
+Word document style templates are stored in .docx files in the "StyleTemplates" folder. The template file was developed in the process described here.
 
 Note that headers and footers are not produced in the current version of the .docx Markdown document, and the list of figures and tables may need to be updated in Word to show correct labels and page numbers. This will be improved in future versions.
