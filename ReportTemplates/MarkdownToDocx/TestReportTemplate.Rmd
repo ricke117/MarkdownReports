@@ -1,27 +1,23 @@
 ---
-title: "Title"
-author: "John Smith (Jacobs)"
+title: "Parameterized Report (demo)"
+author: "Jane Smith (Jacobs)"
 date: "`r Sys.Date()`"
+params:
+  file_plots: NULL
 output:
   officedown::rdocx_document:
     base_format: "bookdown::word_document2"
-    reference_docx: !expr here::here('StyleTemplates', 'WordStyleTemplates', 'WordTemplate1.docx')
+    reference_docx: !expr here::here('StyleTemplates', 'WordStyleTemplates', 'WordTemplate.docx')
     reference_num: FALSE
     number_sections: FALSE
 bibliography: "`r here::here('References', 'TestReferences.bib')`"
 link-citations: yes
 csl: "`r here::here('References', 'ReferenceStyles', 'chicago-author-date.csl')`"
-knit: (function(inputFile, encoding) {
-  rmarkdown::render(inputFile, encoding = encoding,
-  output_dir = here::here('Outputs', 'Reports'))})
 ---
 
 ```{r setup, include = FALSE}
-# Clean the global environment.
-rm(list = ls())
-
 # Set knitr options.
-knitr::opts_chunk$set(include = FALSE, echo = FALSE,
+knitr::opts_chunk$set(echo = FALSE,
                       warnings = FALSE,
                       fig.align = "center",
                       fig.width = 6, fig.height = 4)
@@ -40,194 +36,32 @@ pacman::p_load(devtools, BiocManager, # packages for loading/installing other pa
 # Set other options.
 ## This ensures that Office charts produced by the mschart package match the width and height of the figures in the .docx report.
 formals(ph_location)[c("width", "height")] <- knitr::opts_chunk$get()[c("fig.width", "fig.height")]
+
+report_plots <- readRDS(here::here(params$file_plots))
 ```
 
-This document demonstrates how .docx reports can be written from an R Markdown file in RStudio. It uses officedown and other packages in [the officeverse](https://ardata-fr.github.io/officeverse/).
+This report received `r length(params$report_plots)` plots from Shiny.
 
-For a thorough introduction to R Markdown, check the [R Markdown Cookbook (CRC Press)](https://bookdown.org/yihui/rmarkdown-cookbook/).
+The names of the plots are: `r names(params$report_plots)`
 
-This document is a first step toward the generation of [parameterized reports](https://bookdown.org/yihui/rmarkdown/parameterized-reports.html). Importantly, the parameters of reports, including the data included in them, can be generated in other R scripts, including Shiny apps, then passed as options to the YAML header when knitting this document (via knitr). Parameters passed to the YAML can then be passed to functions within the body of the report. The knitted report could even be rendered within a Shiny app in real-time and re-knit with new parameters. These will be the topics of upcoming repositories.
-
-It's also possible to generate .docX reports with sequential calls to [functions within the officer package](https://ardata-fr.github.io/officeverse/officer-for-word.html). Unlike the current demonstration, which was written in the source pane of the RStudio editor, these functions do not need to be written within an R Markdown document. In that case, Markdown may be avoided entirely, and report parameters would not be passed as options to a Markdown YAML header.
-
-Where possible, Jacobs company styles are used. These are represented in a .docx template file in the "Templates" folder. The template file was developed in the process described [here](https://rmarkdown.rstudio.com/articles_docx.html).
-
-Note that headers and footers are not produced in this version of this document, and the list of figures and tables may need to be updated in Word to show correct labels and page numbers.
-
-\newpage
-
-# Table of contents
-
-<!---BLOCK_TOC--->
-
-## List of figures
-
-<!---BLOCK_TOC{seq_id: 'Fig'}--->
-
-## List of tables
-
-<!---BLOCK_TOC{seq_id: 'Tab'}--->
-
-\newpage
-
-# Styles
-
-Text can be entered into the document by simply typing into Markdown. See [here](https://www.markdownguide.org/basic-syntax/) for an overview of Markdown syntax.
-
-*italic* **bold**  ***bold and italic***  ~~strikethrough~~ 
-
-The style for standard body text will be "Normal."
-
-If you want code to appear in the code of a Markdown file, but not in the knitted output, you can use the following syntax, or just highlight the code and press SHIFT+CMD+C (macOS) or SHIFT+CTRL+C (Windows).
-
-<!-- Inline commentary -->
-
-Examples of additional styles:
-
-<!-- The text in curly brackets, below, make it so these headers are not included in the table of contents in the final report -->
-
-# Heading 1 {.unlisted .unnumbered}
-
-## Heading 2 {.unlisted .unnumbered}
-
-### Heading 3 {.unlisted .unnumbered}
-
-#### Heading 4 {.unlisted .unnumbered}
-
-##### Heading 5 {.unlisted .unnumbered}
-
-###### Heading 6 {.unlisted .unnumbered}
-
-Example of an ordered list:
-
-1.  List level 1
-    1.  List level 1a
-    2.  List level 1b
-        1.  List level 1ba
-            1.  List level 1baa
-
-And an unordered list:
-
--   List level 1a
-    -   List level 1aa
-        -   List level 1aaa
-            -   List level 1aaaa
-
-Example of an equation:
-
-$$
-Pr(\theta | y) = \frac{Pr(y | \theta) Pr(\theta)}{Pr(y)}
-$$
-
-Example code:
-
-    print("hello world")
-
-
-Another way of inserting indented text:
-|   Indented text.
-|       More indented text.
-|           It takes a lot of indents...
-|               ...to replicate a single "tab" key in MS Word.
-
-If you want to use a different style for a given piece of text, you can enter it as a custom style with either of the following syntax. 
-
-<!-- fenced_divs syntax -->
-::: {custom-style = "Strong"}
-
-This is in "Strong" style.
-
-:::
-
-<!-- bracketed_spans syntax -->
-[This is also in "Strong" style.]{custom-style = "Strong"}
-
-
-These styles are implemented using [Pandoc](https://pandoc.org/MANUAL.html#custom-styles). Pandoc provides a number of options for entering text and other content into Markdown documents and converting content between documents.
-
-\newpage
-# Tables
-
-Conveniently, the flextable package exports tables with similar formatting to Jacobs tables. They're also centered, unlike native tables.
-
-```{r, include = TRUE, tab.id = "Tab1", tab.cap = "Sample of mtcars"}
-mtcars %>%
-  head() %>%
-  select(1:6) %>%
-  flextable()
-```
-
-Below, I start a new section and demonstrate a larger table in landscape orientation.
-
-The code for creating new sections and defining their orientation is here: <https://ardata-fr.github.io/officeverse/officedown-for-word.html>
-
-Unfortunately, when I insert a section with landscape orientation (or any new section), the first page of the new section receives the header previously applied to the first page of the whole document, so I removed the headers and footers from the template, for now.
-
-```{r, include = TRUE, tab.id = "Tab2", tab.cap = "All of mtcars"}
-# This code inserts a section break. If not previously defined, the first instance should include the properties of the preceding section. 
-block_section(prop_section(page_size(orient = "portrait"),
-              type = "continuous"))
-
-mtcars %>%
-  flextable()
-
-# The second instance defines properties of the section in question.
-block_section(prop_section(page_size(orient = "landscape"),
-              type = "continuous"))
-```
-
-# Figures
-
-```{r, include = TRUE, fig.id = "Fig1", fig.cap = "Base R (left) and GGplot (right), showing 'cars' and 'pressure' data, respectively."}
-p1 <- ~plot(cars, pch = 19, type = "p")
-
-p2 <- ggplot(pressure, aes(x = temperature, y = pressure)) +
-  geom_line(linetype = 2) +
-  geom_point(shape = 19) +
-  theme_bw()
-
-g <- plot_grid(p1, p2, align = "hv")
-
-g
-
-rm(p1, p2)
-```
+What do the plot objects look like?
 
 ```{r}
-# This chunk demonstrates how ggplot images can be exported to Powerpoint, where they can be edited manually.
-# This can be used with cowplots composed of ggplots and base R plots.
-# I made sure that this exports in the same dimensions as "out.width" and "out.height", so the edited plots can be pasted directly into Word.
-g <- rvg::dml(ggobj = g)
-
-pptx <- read_pptx() %>%
-  add_slide() %>%
-  ph_with(g, ph_location())
+print(report_plots)
 ```
+
+## Plot 1
 
 ```{r}
-# It's also possible to create Office charts and insert them into an Office output document (here, the same Powerpoint doc as before).
-g <- ms_scatterchart(cars, x = "speed", y = "dist")
-
-pptx %>%
-  add_slide() %>%
-  ph_with(g, ph_location())
-
-print(pptx, here::here("Outputs", "Plots", "Figures.pptx"))
+report_plots[["Plot1"]]
 ```
 
-```{r, include = TRUE, fig.id = "Fig2", fig.cap = "An MS chart of the 'cars' data frame."}
-# If you'd rather view the MS chart in the knitted Markdown document, you can "pour" it into the Markdown document from an external Word doc. This requires first printing it to a Word doc.
-print(read_docx() %>% 
-        body_add_chart(chart = g, style = "centered"),
-      target = here::here("Outputs", "Plots", "MSCharts.docx"))
+## Other plots
 
-block_pour_docx(here::here("Outputs", "Plots", "MSCharts.docx"))
+```{r}
+report_plots[!(names(report_plots) %in% "Plot1")]
 ```
 
-\newpage
-
-# References
-
-A citation to R [@R-base].
+This was made in R [@R-base].
 
 <div id="refs"></div>
