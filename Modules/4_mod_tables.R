@@ -15,7 +15,7 @@ tablesUI <- function(id) {
           actionButton(NS(id, "split.button"),
                        "Split the data (optional)"),
           selectInput(NS(id, "splits.keep"),
-                      "Select splits to plot",
+                      "Select splits to summarize",
                       choices = NULL, multiple = TRUE),
           selectInput(NS(id, "group.vars"),
                       "Select grouping variables",

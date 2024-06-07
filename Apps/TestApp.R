@@ -19,6 +19,7 @@ pacman::p_load(devtools, BiocManager, # packages for loading/installing other pa
                knitr, bookdown, # for additional knitting options
                officedown, officer, mschart, rvg, # for producing Office documents and charts
                shiny, shinyWidgets, shinydashboard, shinyFiles, sortable, bslib, shinyjs, shinyalert, shinyjqui, # Shiny packages
+               palmerpenguins, # Extra demo data
                DT, # data tables
                rmarkdown, knitr, tinytex, # Markdown and related
                tidyverse) # for general data manipulation and piping
@@ -27,15 +28,11 @@ pacman::p_load(devtools, BiocManager, # packages for loading/installing other pa
 modfiles <- list.files(here::here("Modules/"))
 invisible(sapply(paste0(here::here("Modules/"), "/", modfiles[modfiles != "NotUsing"]), source))
 
-# And functions in functions folder
-fnfiles <- list.files(here::here("Functions/"))
-invisible(sapply(paste0(here::here("Functions/"), "/", fnfiles[fnfiles != "NotUsing"]), source))
-
 # Test data 
 df.test <- read.csv(here::here("Data/TestData/Zn-Cu-two-zones-NDs.csv"))
 
-g <- iris %>%
-  ggplot(aes(x = Species, y = Sepal.Length)) +
+g <- mtcars %>%
+  ggplot(aes(x = disp, y = mpg)) +
   geom_point()
 
 g2 <- iris %>%
@@ -43,13 +40,17 @@ g2 <- iris %>%
   geom_point() +
   facet_wrap(~Species)
 
-test.plot.list <- list(Plot1 = g, Plot2 = g2)
+g3 <- beaver1 %>%
+  ggplot(aes(x = time, y = temp)) +
+  geom_line() +
+  geom_point()
 
-test.table.list <- list(Table1 = iris, Table2 = mtcars)
+
+test.plot.list <- list(Plot1 = g, Plot2 = g2, Plot3 = g3)
+
+test.table.list <- list(Table1 = mtcars, Table2 = penguins)
 
 # The app ----
-
-# Here I write a small app to test the latest modules.
 TestMod <- function() {
   
   ui <- fluidPage(
@@ -70,20 +71,28 @@ TestMod <- function() {
   )
   
   server <- function(input, output, session){
-    
+
     upload.out <- uploadServer("Upload")
 
     wrangle.out <- wrangleServer("Wrangle", df.in = upload.out)
-
-    plotter.out <- plotterServer("Plots", df.in =  wrangle.out)
-
+     
+    plotter.out <- plotterServer("Plots", df.in = wrangle.out)
+    
     tables.out <- tablesServer("Tables", df.in = wrangle.out)
 
     sort.out <- sortServer("Organize",
-                 plots.in = plotter.out,
-                 tables.in = tables.out)
+                           plots.in = plotter.out,
+                           #plots.in = reactive({ test.plot.list }),
+                           tables.in = tables.out)
+                           #tables.in = reactive({test.table.list}))
     
-    reportServer("Report", plots.in = sort.out)
+    reportServer("Report",
+                 plots.in = sort.out$plots,
+                 #plots.in = reactive({ test.plot.list  }),
+                 tables.in = sort.out$tables
+                 #tables.in = reactive({ test.table.list })
+    )
+    
   }
   shinyApp(ui, server)
 }

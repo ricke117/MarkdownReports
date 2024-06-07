@@ -18,7 +18,7 @@ wrangleUI <- function(id) {
         card(
           tableOutput(NS(id, "df.edited.head")),
           verbatimTextOutput(NS(id, "df.out.summary")),
-          downloadButton(NS(id, "download.edited"), "Download edited data"),
+          downloadButton(NS(id, "download.edited"), "Download edited data", width = "36%"),
           selectInput(NS(id, "export.item"),
                       "Export...",
                       choices = c("Original", "Edited"), multiple = FALSE),

@@ -4,6 +4,7 @@ author: "Jane Smith (Jacobs)"
 date: "`r Sys.Date()`"
 params:
   file_plots: NULL
+  file_tables: NULL
 output:
   officedown::rdocx_document:
     base_format: "bookdown::word_document2"
@@ -16,52 +17,125 @@ csl: "`r here::here('References', 'ReferenceStyles', 'chicago-author-date.csl')`
 ---
 
 ```{r setup, include = FALSE}
-# Set knitr options.
+# Set knitr options
 knitr::opts_chunk$set(echo = FALSE,
                       warnings = FALSE,
                       fig.align = "center",
                       fig.width = 6, fig.height = 4)
+# Set other options
+## This ensures that Office charts produced by the mschart package match the
+## width and height of the figures in the .docx report.
+formals(ph_location)[c("width", "height")] <- knitr::opts_chunk$get()[
+  c("fig.width", "fig.height")
+  ]
 
-# Load packages.
-## The following only loads packages that are required for this template.
-if (!require("pacman")) install.packages("pacman") # p_load from the pacman package checks if packages are installed, installs them if not, then loads them.
-pacman::p_load(devtools, BiocManager, # packages for loading/installing other packages
+# Packages
+if (!require("pacman")) install.packages("pacman") # p_load() from pacman checks
+# if packages are installed, installs them if not, then loads them.
+pacman::p_load(devtools, BiocManager, # for loading/installing other packages
                here, # for using project-relative paths
                cowplot, gridGraphics, # for plotting
                flextable, # for tables
                knitr, bookdown, # for additional knitting options
-               officedown, officer, mschart, # for producing Office documents and charts
+               officedown, officer, mschart, # for producing Office docs
                tidyverse) # for general data manipulation and piping
 
-# Set other options.
-## This ensures that Office charts produced by the mschart package match the width and height of the figures in the .docx report.
-formals(ph_location)[c("width", "height")] <- knitr::opts_chunk$get()[c("fig.width", "fig.height")]
+# Shiny outputs
+## Plots
+report_plots <- readRDS(here::here("Temp", params$file_plots))
+if(!is.null(report_plots)){
+df.plots <- data.frame(item.name = names(report_plots),
+                       item.type = "plot",
+                       removed = FALSE)
+}
+## Tables
+report_tables <- readRDS(here::here("Temp", params$file_tables))
+if(!is.null(report_tables)){
+df.tables <- data.frame(item.name = names(report_tables),
+                       item.type = "table",
+                       removed = FALSE)
+}
+# Combine
+df.items <- rbind(df.plots, df.tables)
 
-report_plots <- readRDS(here::here(params$file_plots))
+# Functions
+table.unpack <- function(x){
+  purrr::map2_chr(
+  .x = names(x),
+  .y = x, 
+  function(caption, dat) {
+    knitr::knit_child(input = here::here("Functions", "child-loop.Rmd"), envir = environment(), quiet = TRUE)}
+  ) %>%
+  # New page for each table in "appendix"
+  cat(sep = "\n\n\\pagebreak\n")
+}
 ```
 
-This report received `r length(params$report_plots)` plots from Shiny.
+# Table of contents
 
-The names of the plots are: `r names(params$report_plots)`
+<!---BLOCK_TOC--->
 
-What do the plot objects look like?
+## List of figures
 
-```{r}
-print(report_plots)
-```
+<!---BLOCK_TOC{seq_id: 'Fig'}--->
 
-## Plot 1
+## List of tables
 
-```{r}
-report_plots[["Plot1"]]
-```
+<!---BLOCK_TOC{seq_id: 'Tab'}--->
 
-## Other plots
+\newpage
 
-```{r}
-report_plots[!(names(report_plots) %in% "Plot1")]
-```
+# Section
+
+This report received `r length(report_plots)` plots and
+`r length(report_tables)` tables from Shiny.
+
+The names of the plots are: `r names(report_plots)`.
+
+The tables are `r names(report_plots)`.
 
 This was made in R [@R-base].
 
+Plot 1:
+
+```{r fig.cap = "Figure with a caption", fig.id = "Fig1"}
+report_plots[[1]]
+#item.add(report_plots, item.position = 1)
+```
+
+Table 1:
+
+```{r results='asis', echo=FALSE}
+#item.add(report_tables, item.position = 1) 
+report_tables[[1]] %>% head(n = 10) %>% flextable() %>% set_table_properties(layout = "autofit")
+```
+
+# References
+
 <div id="refs"></div>
+
+# Appendices
+
+By default, un-rendered plots and tables go into the appendix.
+
+## Plots
+
+```{r}
+walk(report_plots, print)
+```
+
+```{r}
+block_section(prop_section(page_size(orient = "portrait"),
+              type = "continuous"))
+```
+
+## Tables
+
+```{r results='asis', echo=FALSE}
+#item.add(report_tables) %>%
+report_tables %>%
+  table.unpack()
+
+block_section(prop_section(page_size(orient = "landscape"),
+              type = "continuous"))
+```

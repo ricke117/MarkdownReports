@@ -11,16 +11,8 @@ reportUI <- function(id) {
                                                   recursive = FALSE, full.names = FALSE)),
                       multiple = FALSE),
           verbatimTextOutput(NS(id, "report.selected")),
-          # selectInput(NS(id, "style.select.list"), "Select style template",
-          #             selected = NULL,
-          #             choices = setdiff(list.files(here::here("StyleTemplates", "WordStyleTemplates"),
-          #                                          rec = FALSE),
-          #                               list.dirs(here::here("StyleTemplates", "WordStyleTemplates"),
-          #                                         recursive = FALSE, full.names = FALSE)),
-          #             multiple = FALSE),
-          # verbatimTextOutput(NS(id, "style.selected")),
           textInput(NS(id, "report.name"), "Report file name:"),
-          actionButton(NS(id, "download"), "Generate report")
+          actionButton(NS(id, "download"), "Generate report", width = "40%")
           ),
         col_widths = 6,
       )
@@ -33,15 +25,32 @@ reportServer <- function(id, plots.in, tables.in) {
     
     output$report.selected <- renderText({ input$report.select.list })
     
-    # output$style.selected <- renderText({ input$style.select.list })
-    
     observeEvent(input$download, {
       
-      saveRDS(plots.in(), file = here::here("plots.RDS"))
+      # PLOTS
+      if(file.exists(here::here("Temp", "plots.RDS"))) {
+        file.remove(here::here("Temp", "plots.RDS"))
+      }
+      if(length(names(plots.in())) > 0){
+        saveRDS(plots.in(), file = here::here("Temp", "plots.RDS"))
+      } else {
+        saveRDS(NULL, file = here::here("Temp", "plots.RDS"))
+      }
+      
+      #TABLES
+      if(file.exists(here::here("Temp", "tables.RDS"))) {
+        file.remove(here::here("Temp", "tables.RDS"))
+      }
+      if(length(names(tables.in())) > 0){
+        saveRDS(tables.in(), file = here::here("Temp", "tables.RDS"))
+      } else {
+        saveRDS(NULL, file = here::here("Temp", "tables.RDS"))
+      }
       
       params <- list(
-        file_plots = "plots.RDS"
-    )
+        file_plots = "plots.RDS",
+        file_tables = "tables.RDS"
+        )
       
       rmarkdown::render(
         input = here::here("ReportTemplates", "MarkdownToDocx", input$report.select.list),
