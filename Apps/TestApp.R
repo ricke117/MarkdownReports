@@ -22,6 +22,7 @@ pacman::p_load(devtools, BiocManager, # packages for loading/installing other pa
                palmerpenguins, # Extra demo data
                DT, # data tables
                rmarkdown, knitr, tinytex, # Markdown and related
+               base64enc,
                tidyverse) # for general data manipulation and piping
 
 # Load all modules in the modules folder, but not those in "NotUsing".
@@ -29,11 +30,11 @@ modfiles <- list.files(here::here("Modules/"))
 invisible(sapply(paste0(here::here("Modules/"), "/", modfiles[modfiles != "NotUsing"]), source))
 
 # Test data 
-df.test <- read.csv(here::here("Data/TestData/Zn-Cu-two-zones-NDs.csv"))
+df.test <- read.csv(here::here("Data/Zn-Cu-two-zones-NDs.csv"))
 
-g <- mtcars %>%
-  ggplot(aes(x = disp, y = mpg)) +
-  geom_point()
+g1 <- mtcars %>%
+  ggplot(aes(x = cyl, y = mpg, group = cyl)) +
+  geom_boxplot()
 
 g2 <- iris %>%
   ggplot(aes(x = Sepal.Length, y = Sepal.Width)) +
@@ -45,8 +46,7 @@ g3 <- beaver1 %>%
   geom_line() +
   geom_point()
 
-
-test.plot.list <- list(Plot1 = g, Plot2 = g2, Plot3 = g3)
+test.plot.list <- list(Plot1 = g1, Plot2 = g2, Plot3 = g3)
 
 test.table.list <- list(Table1 = mtcars, Table2 = penguins)
 
@@ -59,14 +59,37 @@ TestMod <- function() {
                uploadUI("Upload")),
       tabPanel("Wrangle",
                wrangleUI("Wrangle")),
+      # Make download button less wide
+      # Develop into standalone app
       tabPanel("Plots",
                plotterUI("Plots")),
+      # Make sure that splitting is optional
+      tabPanel("Sort plots",
+               sortplotsUI("Sortplots")),
+      # Make remove and label buttons 40%
+      # Make it like Adobe Acrobat (thumbnails at right, highlighted in center).
+      # Make it more straightforward to assign group labels as well as individual labels
+      # Allow saving all plots and tables together as hyperlinked pdfs or htmls, or ppts.
+      ## These can function as individual appendices, or as cross-references for
+      ## labeling plots/ tables before passing into the report.
       tabPanel("Tables",
                tablesUI("Tables")),
-      tabPanel("Organize report items",
-               sortUI("Organize")),
+      # Allow resorting columns
+      tabPanel("Sort tables",
+               sorttablesUI("Sorttables")),
+      # Make remove and label buttons 40%
+      # Make it like Adobe Acrobat (thumbnails at right, highlighted in center).
+      # Make it more straightforward to assign group labels as well as individual labels.
+      # Potentially allow viewing the report template in parallel with the plots/tables,
+      # and the places that correspond to different labels.
+      # Include stats like row number, column number, etc.
+      # Allow defining individual table styles as well as default style,
+      # and viewing flextable previews in central console.
       tabPanel("Send to report",
                reportUI("Report"))
+      # Allow viewing overall report preview.
+      # For rendeing with officer, make it possible to pull out summary stats
+      # into the body text, like with Markdown. 
     )
   )
   
@@ -75,22 +98,26 @@ TestMod <- function() {
     upload.out <- uploadServer("Upload")
 
     wrangle.out <- wrangleServer("Wrangle", df.in = upload.out)
-     
+
     plotter.out <- plotterServer("Plots", df.in = wrangle.out)
-    
+
     tables.out <- tablesServer("Tables", df.in = wrangle.out)
 
-    sort.out <- sortServer("Organize",
-                           plots.in = plotter.out,
-                           #plots.in = reactive({ test.plot.list }),
-                           tables.in = tables.out)
-                           #tables.in = reactive({test.table.list}))
-    
+    sortplots.out <- sortplotsServer("Sortplots",
+                        #plots.in = plotter.out
+                        plots.in = reactive({ test.plot.list })
+                        )
+
+    sorttables.out <- sorttablesServer("Sorttables",
+                                #tables.in = tables.out
+                                tables.in = reactive({ test.table.list })
+                                )
+
     reportServer("Report",
-                 plots.in = sort.out$plots,
-                 #plots.in = reactive({ test.plot.list  }),
-                 tables.in = sort.out$tables
-                 #tables.in = reactive({ test.table.list })
+                 #plots.in = sortplots.out,
+                 plots.in = reactive({ test.plot.list }),
+                 #tables.in = sorttables.out
+                 tables.in = reactive({ test.table.list })
     )
     
   }

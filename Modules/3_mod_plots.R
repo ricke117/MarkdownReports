@@ -67,9 +67,12 @@ plotterServer <- function(id, df.in) {
     
     req(df.in)
     
+    mod.out.plots <- reactiveValues()
+    selections <- reactiveValues()
+    
     observeEvent(df.in(), {
-      mod.out.plots <<- reactiveValues()
-      selections <<- reactiveValues(d = NULL)
+      mod.out.plots <- reactiveValues()
+      selections$d <- NULL
     })
  
     conditions <- reactiveValues(head.switch = FALSE)
@@ -167,7 +170,7 @@ plotterServer <- function(id, df.in) {
      if(input$plot.type == "Whole plot"){
       out <- plot_grid(plotlist = list.plots())
       out <- list(out)
-      names(out) <- paste0(names(list.plots()), collapse = ",")
+      names(out) <- paste0(names(list.plots()), collapse = "_")
      }
      
       if(input$plot.type == "Subplots"){
@@ -203,8 +206,18 @@ plotterServer <- function(id, df.in) {
      # is the sorted content
      out <- out[order(match(names(out), input$outputs))]
      # minus what we don't want.
-     out[(names(out) %in% input$outputs)]
-   })
+     out <- out[(names(out) %in% input$outputs)]
+     
+     # Here, we also save thumbnails of the plots
+     # do.call(file.remove, list(list.files(here::here("Outputs", "Plots", "Thumbnails"), full.names = TRUE)))
+     # lapply(names(out), function(x){
+     #   ggsave(plot = out[[x]],
+     #          filename = paste0(here::here("Outputs", "Plots", "Thumbnails"), "/", x, ".png"),
+     #          dpi = 100, scale = 0.5)
+     # })
+     
+     return(out)
+     })
    
    observe({
     req(mod.out.plots.final())

@@ -3,28 +3,30 @@ wrangleUI <- function(id) {
     page_fillable(
       layout_columns(
         card(
-          tableOutput(NS(id, "df.data.head")),
           selectInput(NS(id, "D.format"),
                       "Does the data have a 'D_' column (ProUCL)?",
                       choices = c(TRUE, FALSE), multiple = FALSE),
-          selectInput(NS(id, "rm.cols"),
+          selectInput(NS(id, "rm.cols1"),
                       "Remove columns",
                       choices = NULL, multiple = TRUE),
           selectInput(NS(id, "nonanalytes"),
                       "Select non-analytes",
-                      choices = NULL, multiple = TRUE),
-          actionButton(NS(id, "filter.button"), "Pivot data", width = "36%")
+                      choices = NULL, multiple = TRUE, selected = NULL),
+          actionButton(NS(id, "filter.button"), "Pivot analytes (wide to long)", width = "80%"),
+          selectInput(NS(id, "data.item"),
+                      "Select for download or export",
+                      choices = c("Original", "Edited, not pivoted", "Pivoted"), multiple = FALSE),
+          downloadButton(NS(id, "download.edited"), "Download edited data",
+                         style = "width:80%;"),
+          actionButton(NS(id, "export.button"), "Export to next tab (inactive)", width = "80%")
         ),
         card(
-          tableOutput(NS(id, "df.edited.head")),
-          verbatimTextOutput(NS(id, "df.out.summary")),
-          downloadButton(NS(id, "download.edited"), "Download edited data", width = "36%"),
-          selectInput(NS(id, "export.item"),
-                      "Export...",
-                      choices = c("Original", "Edited"), multiple = FALSE),
-          actionButton(NS(id, "export.button"), "Export to next tab", width = "36%")
+          tableOutput(NS(id, "df.data.head")),
+          verbatimTextOutput(NS(id, "df.data.summary")),
+          tableOutput(NS(id, "df.pivoted.head")),
+          verbatimTextOutput(NS(id, "df.pivoted.summary"))
         ),
-        col_widths = c(6,6)
+        col_widths = c(3,9)
       )
     )
   )
@@ -37,42 +39,52 @@ wrangleServer <- function(id, df.in) {
     
     req(df.in)
     
-    df.data <- eventReactive(df.in(), {
-      df.in() %>%
-        rename_all(make.names)
+    df.data <- reactiveVal()
+    
+    observeEvent(df.in(),  {
+      
+      df.data(df.in())
+      
+      updateSelectInput(session, "rm.cols1", choices = names(df.in()))
     })
     
     output$df.data.head <- renderTable({
-      req(df.data)
-      df.data() %>%
-        select(-input$rm.cols) %>%
-        head()
+      head(df.data())
     })
     
-    observeEvent(df.data(), {
-      
-      updateSelectInput(session,
-                        "rm.cols",
-                        choices = names(df.data()))
+    output$df.data.summary <- renderPrint({
+      summary(df.data())
     })
     
-    choices.nonanalytes <- reactive({
-      df.data() %>%
-        select(-input$rm.cols) %>%
-        select(-starts_with("D_")) %>%
-        colnames()
-        })
-    
-    observeEvent(choices.nonanalytes(), {
-      updateSelectInput(session, "nonanalytes", choices = choices.nonanalytes())
+    observe({
+      if(is.null(input$rm.cols1)){
+        out <- df.in()
+      } else {
+        out <- df.in() %>%
+          select(-input$rm.cols1)
+      }
+        df.data(out)
     })
 
-    df.edited <- eventReactive(input$filter.button, {
+    observeEvent(df.data(), {
       
-      out <- df.data()
-      
-      out <- out %>%
-        select(-input$rm.cols) %>%
+      if(input$D.format == TRUE){
+        choices.nonanalytes <- df.data() %>%
+          select(-starts_with("D_")) %>%
+          colnames()
+      } else {
+        choices.nonanalytes <- df.data() %>%
+          colnames()
+      }
+      updateSelectInput(session, "nonanalytes",
+                        choices = choices.nonanalytes, selected = NULL)
+    })
+    
+    df.pivoted <- reactiveVal()
+
+    observeEvent(input$filter.button, {
+
+      out <- df.data() %>%
         mutate(across(!input$nonanalytes, as.numeric))
       
       out.analytes <- out %>%
@@ -80,43 +92,43 @@ wrangleServer <- function(id, df.in) {
         pivot_longer(cols = !input$nonanalytes,
                      names_to = c("Analyte"),
                      values_to = c("Concentration"))
-      
+
       if(input$D.format == TRUE){
         out.ND.col <- out %>%
           pivot_longer(cols = starts_with("D_"),
                        names_to = c("Analyte"),
                        values_to = c("ND")) %>%
           select(ND)
-        
+
         out <- cbind(out.analytes, out.ND.col)
       } else {
         out <- out.analytes
       }
+
+      df.pivoted(out)
     })
-
-      output$df.edited.head <- renderTable({
-        req(df.edited())
-        head(df.edited())
-      })
-
-      output$df.edited.summary <- renderPrint({
-        req(df.edited())
-        summary(df.edited())
-      })
-
-      # This will be saved as a csv.
-      output$download.edited <- downloadHandler(
-        filename = "df.edited.csv",
-        content = function(file = "ShinyOutputs/"){
-          write.csv(df.out(), file, row.names = FALSE)
-        }
-      )
-
-      df.out <- eventReactive(input$export.button, {
-        switch(input$export.item,
-               "Original" = df.data(),
-               "Edited" = df.edited())
-      })
+    
+    output$df.pivoted.head <- renderTable({
+      head(df.pivoted())
+    })
+    
+    output$df.pivoted.summary <- renderPrint({
+      summary(df.pivoted())
+    })
+    
+    df.out <- eventReactive(input$export.button, {
+      switch(input$data.item,
+             "Original" = df.in(),
+             "Edited, not pivoted" = df.data(),
+             "Pivoted" = df.pivoted())
+    })
+    
+    output$download.edited <- downloadHandler(
+      filename = "df.csv",
+      content = function(file = "ShinyOutputs/"){
+        write.csv(df.out(), file, row.names = FALSE)
+      }
+    )
     return(df.out)
   })
 }

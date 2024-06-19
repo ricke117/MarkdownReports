@@ -96,16 +96,16 @@ The tables are `r names(report_plots)`.
 
 This was made in R [@R-base].
 
-Plot 1:
+This is the first plot in the plots output list from Shiny.
 
 ```{r fig.cap = "Figure with a caption", fig.id = "Fig1"}
 report_plots[[1]]
 #item.add(report_plots, item.position = 1)
 ```
 
-Table 1:
+This is the first table in the tables output list from Shiny.
 
-```{r results='asis', echo=FALSE}
+```{r results='asis', echo=FALSE, tab.id = "Tab1", tab.cap = "Table with a caption"}
 #item.add(report_tables, item.position = 1) 
 report_tables[[1]] %>% head(n = 10) %>% flextable() %>% set_table_properties(layout = "autofit")
 ```
@@ -120,7 +120,13 @@ By default, un-rendered plots and tables go into the appendix.
 
 ## Plots
 
-```{r}
+Here I print all plots to simulate an appendix.
+This includes the plot that was printed, before.
+
+I need to figure out how to identify these as individual plots and pass them to
+the table of plots.
+
+```{r, fig.id = "Fig2"}
 walk(report_plots, print)
 ```
 
@@ -131,7 +137,13 @@ block_section(prop_section(page_size(orient = "portrait"),
 
 ## Tables
 
-```{r results='asis', echo=FALSE}
+Here I print all tables in the output list.
+
+In this case, individual captions will have to be passed to them in the loop,
+rather than using the chunk options. I haven't implemented that yet, but those
+captions, as well as names, should be editable in Shiny prior to rendering.
+
+```{r results='asis', echo = FALSE}
 #item.add(report_tables) %>%
 report_tables %>%
   table.unpack()
